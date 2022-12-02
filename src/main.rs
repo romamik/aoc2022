@@ -1,26 +1,18 @@
-use anyhow::{Context, Result};
-use day2::Day2;
+use anyhow::Result;
+use day1::{Day1Pt1, Day1Pt2};
+use day2::{Day2Pt1, Day2Pt2};
 
-use crate::{solution::Solution, util::get_input};
+use crate::solution::Solution;
 
 mod day1;
 mod day2;
 mod solution;
 mod util;
 
-fn run<T: Solution>() -> Result<()> {
-    let input = get_input::<T>("input.txt")?;
-
-    let pt1_output = T::solve_pt1(&input).context(format!("{} pt1 failed", T::NAME))?;
-    println!("{} pt1: {:?}", T::NAME, pt1_output);
-
-    let pt2_output = T::solve_pt2(&input).context(format!("{} pt2 failed", T::NAME))?;
-    println!("{} pt2: {:?}", T::NAME, pt2_output);
-
-    Ok(())
-}
-
 fn main() -> Result<()> {
-    run::<Day2>()?;
+    Day1Pt1::run()?;
+    Day1Pt2::run()?;
+    Day2Pt1::run()?;
+    Day2Pt2::run()?;
     Ok(())
 }

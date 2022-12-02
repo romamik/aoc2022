@@ -1,15 +1,29 @@
 use std::fmt::Debug;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+
+use crate::util::get_input;
+
+pub trait SolutionInput: Debug + Sized {
+    fn parse(input_str: &str) -> Result<Self>;
+}
 
 pub trait Solution {
-    type TInput: Debug;
-    type TPt1Output: Debug;
-    type TPt2Output: Debug;
+    const DAY: usize;
+    const PART: usize;
 
-    const NAME: &'static str;
+    type TInput: SolutionInput;
+    type TOutput: Debug;
 
-    fn parse_input(input_str: &str) -> Result<Self::TInput>;
-    fn solve_pt1(input: &Self::TInput) -> Result<Self::TPt1Output>;
-    fn solve_pt2(input: &Self::TInput) -> Result<Self::TPt2Output>;
+    fn solve(input: &Self::TInput) -> Result<Self::TOutput>;
+
+    fn run() -> Result<()> {
+        let input = get_input::<Self>("input.txt")?;
+
+        let output =
+            Self::solve(&input).context(format!("Day {}, Part {}", Self::DAY, Self::PART))?;
+        println!("Day {} Part {} result: {:?}", Self::DAY, Self::PART, output);
+
+        Ok(())
+    }
 }

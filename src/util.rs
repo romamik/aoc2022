@@ -1,16 +1,12 @@
 use anyhow::{Context, Result};
 use std::{fs, str::FromStr};
 
-use crate::solution::Solution;
+use crate::solution::{Solution, SolutionInput};
 
-pub fn get_input<T: Solution>(name: &str) -> Result<T::TInput> {
-    let input_str = read_file::<T>(name)?;
-    T::parse_input(&input_str)
-}
-
-fn read_file<T: Solution>(name: &str) -> Result<String> {
-    let full_name = format!("src/{}/{}", T::NAME, name);
-    fs::read_to_string(&full_name).context(format!("reading {}", full_name))
+pub fn get_input<T: Solution + ?Sized>(name: &str) -> Result<T::TInput> {
+    let file_name = format!("src/Day{}/{}", T::DAY, name);
+    let input_str = fs::read_to_string(&file_name).context(format!("reading {:?}", &file_name))?;
+    T::TInput::parse(&input_str).context(format!("parsing {:?}", &file_name))
 }
 
 pub fn split_parse<T>(data: &str, sep: &str) -> Result<Vec<T>>
