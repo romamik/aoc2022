@@ -16,10 +16,7 @@ fn read_file<T: Solution>(name: &str) -> Result<String> {
 pub fn split_parse<T>(data: &str, sep: &str) -> Result<Vec<T>>
 where
     T: FromStr,
-    <T as FromStr>::Err: Send,
-    <T as FromStr>::Err: Sync,
-    <T as FromStr>::Err: std::error::Error,
-    <T as FromStr>::Err: 'static,
+    Result<T, <T as FromStr>::Err>: Context<T, <T as FromStr>::Err>,
 {
     data.split(sep)
         .map(|it| it.parse::<T>().context(format!("can't parse '{}'", it)))

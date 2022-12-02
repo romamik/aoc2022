@@ -1,8 +1,10 @@
 use anyhow::{Context, Result};
+use day2::Day2;
 
-use crate::{day1::Day1, solution::Solution, util::get_input};
+use crate::{solution::Solution, util::get_input};
 
 mod day1;
+mod day2;
 mod solution;
 mod util;
 
@@ -19,6 +21,6 @@ fn run<T: Solution>() -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    run::<Day1>()?;
+    run::<Day2>()?;
     Ok(())
 }
