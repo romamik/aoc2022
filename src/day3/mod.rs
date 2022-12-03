@@ -25,7 +25,7 @@ fn find_common_item(group: &Group) -> Result<Item> {
     let (priority, _) = counts
         .iter()
         .cloned()
-        .find_position(|&c| c == 3)
+        .find_position(|&c| c == group.len())
         .ok_or_else(|| anyhow!("common item not found"))?;
     Item::from_priority(priority)
 }
@@ -79,6 +79,16 @@ mod tests {
     }
 
     #[test]
+    fn test_pt2_result() {
+        assert_eq!(2525, Day3Pt2::solve(&INPUT_MAIN).unwrap());
+    }
+
+    #[test]
+    fn test_pt2() {
+        assert_eq!(70, Day3Pt2::solve(&INPUT_TEST).unwrap());
+    }
+
+    #[test]
     fn test_find_common() {
         assert_eq!(
             'a',
@@ -95,10 +105,5 @@ mod tests {
         );
 
         assert_eq!('r', find_common_item(&INPUT_TEST[0]).unwrap().as_char())
-    }
-
-    #[test]
-    fn test_pt2() {
-        assert_eq!(70, Day3Pt2::solve(&INPUT_TEST).unwrap());
     }
 }
