@@ -32,7 +32,7 @@ fn find_common_item(group: &Group) -> Result<Item> {
 
 impl SolutionInput for Day3Pt2Input {
     fn parse(input_str: &str) -> anyhow::Result<Self> {
-        let tuples_iter = input_str
+        let mut tuples_iter = input_str
             .split('\n')
             .map(|s| {
                 s.as_bytes()
@@ -42,10 +42,14 @@ impl SolutionInput for Day3Pt2Input {
             })
             .tuples::<(_, _, _)>();
 
-        //TODO check noting behind if line count not divisible by 3
-        tuples_iter
+        let groups = tuples_iter
+            .by_ref()
             .map(|tup| Ok([tup.0?, tup.1?, tup.2?]))
-            .collect::<Result<Vec<_>>>()
+            .collect::<Result<Vec<_>>>()?;
+
+        assert_eq!(0, tuples_iter.into_buffer().len());
+
+        Ok(groups)
     }
 }
 
