@@ -37,6 +37,12 @@ fn range_contains_range(a: &Range, b: &Range) -> bool {
     rng.contains(&b.0) && rng.contains(&b.1)
 }
 
+fn ranges_overlap(a: &Range, b: &Range) -> bool {
+    let a_left_of_b = a.1 < b.0;
+    let a_right_of_b = a.0 > b.1;
+    !a_left_of_b && !a_right_of_b
+}
+
 impl SolutionInput for Day4Input {
     fn parse(input_str: &str) -> Result<Self> {
         input_str.split('\n').map(parse_range_pair).collect()
@@ -62,6 +68,23 @@ impl Solution for Day4Pt1 {
     }
 }
 
+pub struct Day4Pt2;
+
+impl Solution for Day4Pt2 {
+    const DAY: usize = 4;
+    const PART: usize = 2;
+
+    type TInput = Day4Input;
+    type TOutput = usize;
+
+    fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
+        Ok(input
+            .iter()
+            .filter(|pair| ranges_overlap(&pair.0, &pair.1))
+            .count())
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -73,6 +96,16 @@ mod tests {
     lazy_static! {
         static ref INPUT_TEST: Day4Input = get_input::<Day4Pt1>("test.txt").unwrap();
         static ref INPUT_MAIN: Day4Input = get_input::<Day4Pt1>("input.txt").unwrap();
+    }
+
+    #[test]
+    fn test_pt2_result() {
+        assert_eq!(872, Day4Pt2::solve(&INPUT_MAIN).unwrap());
+    }
+
+    #[test]
+    fn test_pt2() {
+        assert_eq!(4, Day4Pt2::solve(&INPUT_TEST).unwrap());
     }
 
     #[test]
