@@ -61,7 +61,25 @@ impl Solution for Day5Pt1 {
     fn solve(input: &Day5Input) -> Result<String> {
         let mut stack_set = input.0.clone();
         for cmd in input.1.iter() {
-            stack_set.apply_moves(cmd.0, cmd.1, cmd.2)?;
+            stack_set.apply_moves_by_1(cmd.0, cmd.1, cmd.2)?;
+        }
+        Ok(stack_set.get_top_names().iter().join(""))
+    }
+}
+
+pub struct Day5Pt2;
+
+impl Solution for Day5Pt2 {
+    const DAY: usize = 5;
+    const PART: usize = 2;
+
+    type TInput = Day5Input;
+    type TOutput = String;
+
+    fn solve(input: &Day5Input) -> Result<String> {
+        let mut stack_set = input.0.clone();
+        for cmd in input.1.iter() {
+            stack_set.apply_moves_by_chunks(cmd.0, cmd.1, cmd.2)?;
         }
         Ok(stack_set.get_top_names().iter().join(""))
     }
@@ -77,6 +95,16 @@ pub(crate) mod tests {
     lazy_static! {
         static ref INPUT_TEST: Day5Input = get_input::<Day5Pt1>("test.txt").unwrap();
         static ref INPUT_MAIN: Day5Input = get_input::<Day5Pt1>("input.txt").unwrap();
+    }
+
+    #[test]
+    fn test_pt2_result() {
+        assert_eq!("VHJDDCWRD", &Day5Pt2::solve(&INPUT_MAIN).unwrap());
+    }
+
+    #[test]
+    fn test_pt2() {
+        assert_eq!("MCD", &Day5Pt2::solve(&INPUT_TEST).unwrap());
     }
 
     #[test]

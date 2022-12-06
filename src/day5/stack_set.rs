@@ -19,7 +19,7 @@ fn find_index_by_name(names: &[char], name: char) -> Result<usize> {
 }
 
 impl StackSet {
-    pub fn apply_moves(&mut self, count: usize, from: char, to: char) -> Result<()> {
+    pub fn apply_moves_by_1(&mut self, count: usize, from: char, to: char) -> Result<()> {
         let from_i = find_index_by_name(&self.names, from)?;
         let to_i = find_index_by_name(&self.names, to)?;
         for i in 0..count {
@@ -28,6 +28,19 @@ impl StackSet {
                 .ok_or_else(|| anyhow!("stack {:?} empty, i=={}", from, i))?;
             self.stacks[to_i].push(name);
         }
+        Ok(())
+    }
+
+    pub fn apply_moves_by_chunks(&mut self, count: usize, from: char, to: char) -> Result<()> {
+        let from_i = find_index_by_name(&self.names, from)?;
+        let to_i = find_index_by_name(&self.names, to)?;
+
+        let from_stack = &mut self.stacks[from_i];
+        let mut names = from_stack.drain(from_stack.len() - count..).collect_vec();
+
+        let to_stack = &mut self.stacks[to_i];
+        to_stack.append(&mut names);
+
         Ok(())
     }
 
@@ -132,10 +145,10 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_move() {
+    fn test_move_by_chunks() {
         let mut stack_set = STACK_SET_INPUT.parse::<StackSet>().unwrap();
 
-        stack_set.apply_moves(1, '2', '1');
+        stack_set.apply_moves_by_chunks(1, '2', '1').unwrap();
         assert_eq!(
             [
                 "[D]        ", //
@@ -147,7 +160,37 @@ pub(crate) mod tests {
             stack_set.to_string()
         );
 
-        stack_set.apply_moves(3, '1', '3');
+        stack_set.apply_moves_by_chunks(3, '1', '3').unwrap();
+        assert_eq!(
+            [
+                "        [D]", //
+                "        [N]", //
+                "    [C] [Z]", //
+                "    [M] [P]", //
+                " 1   2   3 ", //
+            ]
+            .join("\n"),
+            stack_set.to_string()
+        );
+    }
+
+    #[test]
+    fn test_move_by_1() {
+        let mut stack_set = STACK_SET_INPUT.parse::<StackSet>().unwrap();
+
+        stack_set.apply_moves_by_1(1, '2', '1').unwrap();
+        assert_eq!(
+            [
+                "[D]        ", //
+                "[N] [C]    ", //
+                "[Z] [M] [P]", //
+                " 1   2   3 ", //
+            ]
+            .join("\n"),
+            stack_set.to_string()
+        );
+
+        stack_set.apply_moves_by_1(3, '1', '3').unwrap();
         assert_eq!(
             [
                 "        [Z]", //
