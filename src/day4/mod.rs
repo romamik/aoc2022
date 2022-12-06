@@ -88,9 +88,8 @@ impl Solution for Day4Pt2 {
 #[cfg(test)]
 mod tests {
 
-    use lazy_static::lazy_static;
-
     use crate::util::get_input;
+    use lazy_static::lazy_static;
 
     use super::*;
     lazy_static! {
