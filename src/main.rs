@@ -3,6 +3,7 @@ mod day2;
 mod day3;
 mod day4;
 mod day5;
+mod day6;
 mod solution;
 mod util;
 
@@ -13,6 +14,7 @@ use day2::{Day2Pt1, Day2Pt2};
 use day3::{Day3Pt1, Day3Pt2};
 use day4::{Day4Pt1, Day4Pt2};
 use day5::{Day5Pt1, Day5Pt2};
+use day6::Day6Pt1;
 
 fn main() -> Result<()> {
     Day1Pt1::run()?;
@@ -25,5 +27,6 @@ fn main() -> Result<()> {
     Day4Pt2::run()?;
     Day5Pt1::run()?;
     Day5Pt2::run()?;
+    Day6Pt1::run()?;
     Ok(())
 }
