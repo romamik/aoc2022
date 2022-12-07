@@ -8,8 +8,6 @@ pub mod fs;
 
 type Day7Input = Vec<Command>;
 
-pub struct Day7Pt1;
-
 fn visit_all<FFile: FnMut(&File), FDir: FnMut(&Dir)>(
     entry: &FSEntry,
     fn_file: &mut FFile,
@@ -24,6 +22,8 @@ fn visit_all<FFile: FnMut(&File), FDir: FnMut(&Dir)>(
         }
     }
 }
+
+pub struct Day7Pt1;
 
 impl Solution for Day7Pt1 {
     const DAY: usize = 7;
@@ -45,6 +45,39 @@ impl Solution for Day7Pt1 {
         });
 
         Ok(total_size)
+    }
+}
+
+pub struct Day7Pt2;
+
+impl Solution for Day7Pt2 {
+    const DAY: usize = 7;
+    const PART: usize = 2;
+
+    type TInput = Day7Input;
+    type TOutput = usize;
+
+    fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
+        let mut root = Dir::new();
+        run_commands(&mut root, &mut input.iter())?;
+
+        let total_disk = 70000000;
+        let need = 30000000;
+        let occupied = root.size();
+        let free = total_disk - occupied;
+        let need_free = if free < need { need - free } else { 0 };
+
+        let mut dir_sizes = vec![];
+        visit_all(&FSEntry::Dir(root), &mut |_| (), &mut |dir| {
+            dir_sizes.push(dir.size());
+        });
+        dir_sizes.sort();
+        for &size in dir_sizes.iter() {
+            if size >= need_free {
+                return Ok(size);
+            }
+        }
+        bail!("no dir big enough")
     }
 }
 
@@ -144,6 +177,18 @@ mod tests {
     lazy_static! {
         static ref INPUT_TEST: Day7Input = get_input::<Day7Pt1>("test.txt").unwrap();
         static ref INPUT_MAIN: Day7Input = get_input::<Day7Pt1>("input.txt").unwrap();
+    }
+
+    #[test]
+    fn test_part2_result() -> Result<()> {
+        assert_eq!(10475598, Day7Pt2::solve(&INPUT_MAIN)?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_part2() -> Result<()> {
+        assert_eq!(24933642, Day7Pt2::solve(&INPUT_TEST)?);
+        Ok(())
     }
 
     #[test]
