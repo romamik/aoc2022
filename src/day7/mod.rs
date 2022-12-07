@@ -147,6 +147,12 @@ mod tests {
     }
 
     #[test]
+    fn test_part1_result() -> Result<()> {
+        assert_eq!(1428881, Day7Pt1::solve(&INPUT_MAIN)?);
+        Ok(())
+    }
+
+    #[test]
     fn test_part1() -> Result<()> {
         assert_eq!(95437, Day7Pt1::solve(&INPUT_TEST)?);
         Ok(())
