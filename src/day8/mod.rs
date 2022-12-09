@@ -51,7 +51,7 @@ impl Day8Input {
             map: &Day8Input,
             start: (isize, isize),
             end: (isize, isize),
-            visible_trees: &mut Vec<Vec<u8>>,
+            visible_trees: &mut [Vec<u8>],
         ) {
             let dx = (end.0 - start.0).signum();
             let dy = (end.1 - start.1).signum();
