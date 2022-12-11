@@ -154,6 +154,13 @@ impl Solution for Day10Pt2 {
 
         Ok(out)
     }
+
+    fn print_result(result: &Self::TOutput) {
+        println!();
+        for line in result.iter() {
+            println!("{}", line);
+        }
+    }
 }
 
 #[cfg(test)]

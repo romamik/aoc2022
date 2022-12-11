@@ -17,12 +17,18 @@ pub trait Solution {
 
     fn solve(input: &Self::TInput) -> Result<Self::TOutput>;
 
+    fn print_result(result: &Self::TOutput) {
+        print!("{:?}", result);
+    }
+
     fn run() -> Result<()> {
         let input = get_input::<Self>("input.txt")?;
 
         let output =
             Self::solve(&input).context(format!("Day {}, Part {}", Self::DAY, Self::PART))?;
-        println!("Day {} Part {} result: {:?}", Self::DAY, Self::PART, output);
+        print!("Day {} Part {} result: ", Self::DAY, Self::PART);
+        Self::print_result(&output);
+        println!();
 
         Ok(())
     }
