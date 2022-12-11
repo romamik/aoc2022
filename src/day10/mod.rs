@@ -1,11 +1,10 @@
-use std::str::FromStr;
-
-use anyhow::{anyhow, bail, Context, Error, Result};
-
 use crate::{
     solution::{Solution, SolutionInput},
     util::split_parse,
 };
+use anyhow::{anyhow, bail, Context, Error, Result};
+use std::io::Write;
+use std::str::FromStr;
 
 pub struct State {
     pub x: i32,
@@ -131,6 +130,32 @@ impl Solution for Day10Pt1 {
     }
 }
 
+pub struct Day10Pt2;
+impl Solution for Day10Pt2 {
+    const DAY: usize = 10;
+    const PART: usize = 1;
+
+    type TInput = Vec<Cmd>;
+    type TOutput = Vec<String>;
+
+    fn solve(_input: &Self::TInput) -> Result<Self::TOutput> {
+        let mut vm = VM::new(_input.iter().cloned());
+        let mut out = Vec::new();
+
+        for _ in 0..6 {
+            let mut line = Vec::new();
+            for pos in 0..40 {
+                let pixel_lit = (-1..=1).contains(&(vm.state.x - pos));
+                write!(line, "{}", if pixel_lit { '#' } else { '.' })?;
+                vm.cycle();
+            }
+            out.push(String::from_utf8(line)?);
+        }
+
+        Ok(out)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -143,18 +168,37 @@ mod tests {
         static ref INPUT_MAIN: Vec<Cmd> = get_input::<Day10Pt1>("input.txt").unwrap();
     }
 
-    // #[test]
-    // fn test_part2_result() -> Result<()> {
-    //     assert_eq!(2331, Day9Pt2::solve(&INPUT_MAIN)?);
-    //     Ok(())
-    // }
+    #[test]
+    fn test_part2_result() -> Result<()> {
+        assert_eq!(
+            &vec![
+                "###...##..###....##..##..###..#..#.###..".to_string(),
+                "#..#.#..#.#..#....#.#..#.#..#.#..#.#..#.".to_string(),
+                "#..#.#..#.#..#....#.#....###..####.#..#.".to_string(),
+                "###..####.###.....#.#....#..#.#..#.###..".to_string(),
+                "#....#..#.#....#..#.#..#.#..#.#..#.#....".to_string(),
+                "#....#..#.#.....##...##..###..#..#.#....".to_string(),
+            ],
+            &Day10Pt2::solve(&INPUT_MAIN)?
+        );
+        Ok(())
+    }
 
-    // #[test]
-    // fn test_part2() -> Result<()> {
-    //     assert_eq!(1, Day9Pt2::solve(&INPUT_TEST_1)?);
-    //     assert_eq!(36, Day9Pt2::solve(&INPUT_TEST_2)?);
-    //     Ok(())
-    // }
+    #[test]
+    fn test_part2() -> Result<()> {
+        assert_eq!(
+            &vec![
+                "##..##..##..##..##..##..##..##..##..##..".to_string(),
+                "###...###...###...###...###...###...###.".to_string(),
+                "####....####....####....####....####....".to_string(),
+                "#####.....#####.....#####.....#####.....".to_string(),
+                "######......######......######......####".to_string(),
+                "#######.......#######.......#######.....".to_string(),
+            ],
+            &Day10Pt2::solve(&INPUT_TEST)?
+        );
+        Ok(())
+    }
 
     #[test]
     fn test_part1_result() -> Result<()> {
