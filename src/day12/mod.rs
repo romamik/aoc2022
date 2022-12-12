@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashSet, VecDeque};
 
 use anyhow::{anyhow, bail, ensure, Result};
 
@@ -32,15 +32,13 @@ impl Map {
         PathPred: Fn(i8, i8) -> bool,
     {
         let mut queue = VecDeque::new();
-        let mut visited = HashMap::new();
+        let mut visited = HashSet::new();
 
-        queue.push_back(start);
-        visited.insert(start, 0);
+        let start_height = self.at(start).ok_or_else(|| anyhow!("start out of map"))?;
+        queue.push_back((start, start_height, 0));
+        visited.insert(start);
 
-        while let Some(pt) = queue.pop_front() {
-            let height = self.at(pt).ok_or_else(|| anyhow!("out of map"))?;
-            let path_len = *visited.get(&pt).ok_or_else(|| anyhow!("not visited"))?;
-
+        while let Some((pt, height, path_len)) = queue.pop_front() {
             if end_pred(pt) {
                 return Ok(path_len);
             }
@@ -49,9 +47,9 @@ impl Map {
                 let next_pt = (pt.0 + dx, pt.1 + dy);
 
                 if let Some(next_pt_height) = self.at(next_pt) {
-                    if path_pred(height, next_pt_height) && !visited.contains_key(&next_pt) {
-                        queue.push_back(next_pt);
-                        visited.insert(next_pt, path_len + 1);
+                    if path_pred(height, next_pt_height) && !visited.contains(&next_pt) {
+                        queue.push_back((next_pt, next_pt_height, path_len + 1));
+                        visited.insert(next_pt);
                     }
                 }
             }
