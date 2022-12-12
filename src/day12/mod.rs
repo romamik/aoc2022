@@ -107,7 +107,7 @@ impl SolutionInput for Input {
 
         let size_x = size_x.ok_or_else(|| anyhow!("No input"))?;
         let start = start.ok_or_else(|| anyhow!("No start"))?;
-        let end = end.ok_or_else(|| anyhow!("No start"))?;
+        let end = end.ok_or_else(|| anyhow!("No end"))?;
 
         Ok(Input {
             map: Map {
