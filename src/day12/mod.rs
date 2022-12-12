@@ -20,6 +20,45 @@ impl Map {
             None
         }
     }
+
+    fn find_path<EndPred, PathPred>(
+        &self,
+        start: Point,
+        end_pred: EndPred,
+        path_pred: PathPred,
+    ) -> Result<usize>
+    where
+        EndPred: Fn(Point) -> bool,
+        PathPred: Fn(i8, i8) -> bool,
+    {
+        let mut queue = VecDeque::new();
+        let mut visited = HashMap::new();
+
+        queue.push_back(start);
+        visited.insert(start, 0);
+
+        while let Some(pt) = queue.pop_front() {
+            let height = self.at(pt).ok_or_else(|| anyhow!("out of map"))?;
+            let path_len = *visited.get(&pt).ok_or_else(|| anyhow!("not visited"))?;
+
+            if end_pred(pt) {
+                return Ok(path_len);
+            }
+
+            for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                let next_pt = (pt.0 + dx, pt.1 + dy);
+
+                if let Some(next_pt_height) = self.at(next_pt) {
+                    if path_pred(height, next_pt_height) && !visited.contains_key(&next_pt) {
+                        queue.push_back(next_pt);
+                        visited.insert(next_pt, path_len + 1);
+                    }
+                }
+            }
+        }
+
+        bail!("path not found");
+    }
 }
 
 #[derive(Debug)]
@@ -91,36 +130,29 @@ impl Solution for Day12Pt1 {
     type TOutput = usize;
 
     fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
-        let mut queue = VecDeque::new();
-        let mut visited = HashMap::new();
+        input.map.find_path(
+            input.start,
+            |pt| pt == input.end,
+            |height, next_height| next_height <= height + 1,
+        )
+    }
+}
 
-        queue.push_back(input.start);
-        visited.insert(input.start, 0);
+pub struct Day12Pt2;
 
-        while let Some(pt) = queue.pop_front() {
-            if pt == input.end {
-                break;
-            }
+impl Solution for Day12Pt2 {
+    const DAY: usize = 12;
+    const PART: usize = 2;
 
-            let height = input.map.at(pt).ok_or_else(|| anyhow!("out of map"))?;
-            let path_len = *visited.get(&pt).ok_or_else(|| anyhow!("not visited"))?;
+    type TInput = Input;
+    type TOutput = usize;
 
-            for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
-                let next_pt = (pt.0 + dx, pt.1 + dy);
-
-                if let Some(next_pt_height) = input.map.at(next_pt) {
-                    if next_pt_height <= height + 1 && !visited.contains_key(&next_pt) {
-                        queue.push_back(next_pt);
-                        visited.insert(next_pt, path_len + 1);
-                    }
-                }
-            }
-        }
-
-        visited
-            .get(&input.end)
-            .cloned()
-            .ok_or_else(|| anyhow!("path not found"))
+    fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
+        input.map.find_path(
+            input.end,
+            |pt| input.map.at(pt) == Some(0),
+            |height, next_height| height <= next_height + 1,
+        )
     }
 }
 
@@ -136,17 +168,17 @@ mod tests {
         static ref INPUT_MAIN: Input = get_input::<Day12Pt1>("input.txt").unwrap();
     }
 
-    // #[test]
-    // fn test_part2_result() -> Result<()> {
-    //     assert_eq!(23612457316, Day11Pt2::solve(&INPUT_MAIN)?);
-    //     Ok(())
-    // }
+    #[test]
+    fn test_part2_result() -> Result<()> {
+        assert_eq!(386, Day12Pt2::solve(&INPUT_MAIN)?);
+        Ok(())
+    }
 
-    // #[test]
-    // fn test_part2() -> Result<()> {
-    //     assert_eq!(2713310158, Day11Pt2::solve(&INPUT_TEST)?);
-    //     Ok(())
-    // }
+    #[test]
+    fn test_part2() -> Result<()> {
+        assert_eq!(29, Day12Pt2::solve(&INPUT_TEST)?);
+        Ok(())
+    }
 
     #[test]
     fn test_part1_result() -> Result<()> {

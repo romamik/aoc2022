@@ -270,7 +270,7 @@ mod tests {
     #[test]
     fn test_make_round() -> Result<()> {
         let mut monkeys: Vec<Monkey<Part1Item>> = Monkey::create(&INPUT_TEST);
-        Monkey::make_round(&mut monkeys, &mut HashMap::new());
+        Monkey::make_round(&mut monkeys, &mut HashMap::new())?;
         assert_eq!(monkeys[0].items, vec![20, 23, 27, 26]);
         assert_eq!(monkeys[1].items, vec![2080, 25, 167, 207, 401, 1046]);
         assert_eq!(monkeys[2].items, vec![]);
