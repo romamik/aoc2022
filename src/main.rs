@@ -1,6 +1,7 @@
 mod day1;
 mod day10;
 mod day11;
+mod day12;
 mod day2;
 mod day3;
 mod day4;
@@ -17,6 +18,7 @@ use anyhow::Result;
 use day1::{Day1Pt1, Day1Pt2};
 use day10::{Day10Pt1, Day10Pt2};
 use day11::{Day11Pt1, Day11Pt2};
+use day12::Day12Pt1;
 use day2::{Day2Pt1, Day2Pt2};
 use day3::{Day3Pt1, Day3Pt2};
 use day4::{Day4Pt1, Day4Pt2};
@@ -49,5 +51,6 @@ fn main() -> Result<()> {
     Day10Pt2::run()?;
     Day11Pt1::run()?;
     Day11Pt2::run()?;
+    Day12Pt1::run()?;
     Ok(())
 }
