@@ -4,12 +4,12 @@ use nom::{
     bytes::complete::{tag, take},
     character::{
         complete::{digit1, multispace0, multispace1, one_of},
-        streaming::{space0, space1},
+        streaming::space0,
     },
     combinator::{map, map_res, opt, recognize},
     error::ParseError,
     multi::separated_list0,
-    sequence::{delimited, pair, preceded, tuple},
+    sequence::{delimited, preceded, tuple},
     IResult,
 };
 use std::str::FromStr;
@@ -57,37 +57,26 @@ pub fn parse_op(s: &str) -> IResult<&str, Op> {
     ))(s)
 }
 
-impl Test {
-    fn parse(s: &str) -> IResult<&str, Test> {
-        preceded(
-            pair(tag("divisible by"), space1),
-            map_res(digit1, |s: &str| -> Result<_, Error> {
-                Ok(Test::DivisibleBy(s.parse::<Num>()?))
-            }),
-        )(s)
-    }
-}
-
 pub fn spaced_tag<'a, Error: ParseError<&'a str>>(
     t: &'a str,
 ) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, Error> {
     delimited(multispace0, tag(t), multispace0)
 }
 
-impl Monkey {
+impl MonkeyInput {
     fn parse_monkey_name(s: &str) -> IResult<&str, MonkeyName> {
         map_res(digit1, |s: &str| s.parse())(s)
     }
 
-    fn parse_item(s: &str) -> IResult<&str, Num> {
+    fn parse_num(s: &str) -> IResult<&str, Num> {
         map_res(digit1, |s: &str| s.parse())(s)
     }
 
     fn parse_items(s: &str) -> IResult<&str, Vec<Num>> {
-        separated_list0(tuple((space0, tag(","), space0)), Self::parse_item)(s)
+        separated_list0(tuple((space0, tag(","), space0)), Self::parse_num)(s)
     }
 
-    pub fn parse(s: &str) -> IResult<&str, Monkey> {
+    pub fn parse(s: &str) -> IResult<&str, MonkeyInput> {
         map(
             tuple((
                 delimited(
@@ -97,7 +86,7 @@ impl Monkey {
                 ),
                 preceded(spaced_tag("Starting items:"), Self::parse_items),
                 preceded(spaced_tag("Operation: new ="), parse_op),
-                preceded(spaced_tag("Test:"), Test::parse),
+                preceded(spaced_tag("Test: divisible by"), Self::parse_num),
                 preceded(
                     spaced_tag("If true: throw to monkey"),
                     Self::parse_monkey_name,
@@ -107,12 +96,12 @@ impl Monkey {
                     Self::parse_monkey_name,
                 ),
             )),
-            |(name, items, op, test, monkey_if_true, monkey_if_false)| Monkey {
+            |(name, items, op, test, monkey_if_true, monkey_if_false)| MonkeyInput {
                 name,
-                items,
+                starting_items: items,
                 rule: MonkeyRule {
                     op,
-                    test,
+                    divisible_by: test,
                     monkey_if_true,
                     monkey_if_false,
                 },
@@ -120,7 +109,7 @@ impl Monkey {
         )(s)
     }
 
-    pub fn parse_list(s: &str) -> IResult<&str, Vec<Monkey>> {
+    pub fn parse_list(s: &str) -> IResult<&str, Vec<MonkeyInput>> {
         map_res(separated_list0(multispace1, Self::parse), |monkeys| {
             for (i, monkey) in monkeys.iter().enumerate() {
                 ensure!(i == monkey.name);
@@ -143,40 +132,40 @@ mod tests {
             "  Starting items: 79, 98",
             "  Operation: new = old * 19",
             "  Test: divisible by 23",
-            "    If true: throw to monkey 2",
-            "    If false: throw to monkey 3",
+            "    If true: throw to monkey 1",
+            "    If false: throw to monkey 0",
             "",
             "Monkey 1:",
             "  Starting items: 79, 98",
             "  Operation: new = old * 19",
             "  Test: divisible by 23",
-            "    If true: throw to monkey 2",
-            "    If false: throw to monkey 3",
+            "    If true: throw to monkey 0",
+            "    If false: throw to monkey 1",
         ]
         .join("\n");
         assert_eq!(
-            Monkey::parse_list(&s),
+            MonkeyInput::parse_list(&s),
             Ok((
                 "",
                 vec![
-                    Monkey {
+                    MonkeyInput {
                         name: 0,
-                        items: vec![79, 98],
+                        starting_items: vec![79, 98],
                         rule: MonkeyRule {
                             op: (OpVal::Old, OpType::Mul, OpVal::Num(19)),
-                            test: Test::DivisibleBy(23),
-                            monkey_if_true: 2,
-                            monkey_if_false: 3
+                            divisible_by: 23,
+                            monkey_if_true: 1,
+                            monkey_if_false: 0
                         }
                     },
-                    Monkey {
+                    MonkeyInput {
                         name: 1,
-                        items: vec![79, 98],
+                        starting_items: vec![79, 98],
                         rule: MonkeyRule {
                             op: (OpVal::Old, OpType::Mul, OpVal::Num(19)),
-                            test: Test::DivisibleBy(23),
-                            monkey_if_true: 2,
-                            monkey_if_false: 3
+                            divisible_by: 23,
+                            monkey_if_true: 0,
+                            monkey_if_false: 1
                         }
                     },
                 ]
@@ -196,15 +185,15 @@ mod tests {
         ]
         .join("\n");
         assert_eq!(
-            Monkey::parse(&s),
+            MonkeyInput::parse(&s),
             Ok((
                 "",
-                Monkey {
+                MonkeyInput {
                     name: 0,
-                    items: vec![79, 98],
+                    starting_items: vec![79, 98],
                     rule: MonkeyRule {
                         op: (OpVal::Old, OpType::Mul, OpVal::Num(19)),
-                        test: Test::DivisibleBy(23),
+                        divisible_by: 23,
                         monkey_if_true: 2,
                         monkey_if_false: 3
                     }
