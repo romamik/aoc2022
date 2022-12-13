@@ -1,49 +1,22 @@
-use crate::solution::{Solution, SolutionInput};
-use anyhow::{anyhow, bail, Result};
+use crate::{
+    solution::{Solution, SolutionInput},
+    util::Vec2d,
+};
+use anyhow::{anyhow, Result};
 
-#[derive(Debug)]
-pub struct Day8Input {
-    size_x: isize,
-    size_y: isize,
-    heights: Vec<isize>,
-}
+type Day8Input = Vec2d<isize>;
 
 impl Day8Input {
-    fn parse(s: &str) -> Result<Day8Input> {
-        let mut size_x = None;
-        let mut size_y = 0;
-        let mut heights = Vec::new();
-        for line in s.split('\n') {
-            let mut line_size = 0;
-            for c in line.bytes() {
-                let height = (c - b'0') as isize;
-                heights.push(height);
-                line_size += 1;
-            }
-
-            match size_x {
-                None => size_x = Some(line_size),
-                Some(size) if size != line_size => {
-                    bail!("line_size ({}) != size_x ({})", line.len(), size)
-                }
-                _ => (),
-            }
-
-            size_y += 1;
-        }
-        Ok(Day8Input {
-            size_x: size_x.ok_or_else(|| anyhow!("empty input? {:?}", s))?,
-            size_y,
-            heights,
-        })
+    pub fn at(&self, x: isize, y: isize) -> isize {
+        self.get(x, y).cloned().unwrap_or(-1)
     }
 
-    pub fn at(&self, x: isize, y: isize) -> isize {
-        if x >= 0 && y >= 0 && x < self.size_x && y < self.size_y {
-            self.heights[(x + y * self.size_x) as usize]
-        } else {
-            -1
-        }
+    pub fn size_x(&self) -> isize {
+        self.size_x as isize
+    }
+
+    pub fn size_y(&self) -> isize {
+        self.size_y as isize
     }
 
     pub fn count_visible_trees(&self) -> usize {
@@ -75,14 +48,14 @@ impl Day8Input {
         let mut visible_trees: Vec<Vec<u8>> =
             vec![vec![0; self.size_x as usize]; self.size_y as usize];
 
-        for x in 0..self.size_x {
-            look_from(self, (x, 0), (x, self.size_y - 1), &mut visible_trees);
-            look_from(self, (x, self.size_y - 1), (x, 0), &mut visible_trees);
+        for x in 0..self.size_x() {
+            look_from(self, (x, 0), (x, self.size_y() - 1), &mut visible_trees);
+            look_from(self, (x, self.size_y() - 1), (x, 0), &mut visible_trees);
         }
 
-        for y in 0..self.size_y {
-            look_from(self, (0, y), (self.size_x - 1, y), &mut visible_trees);
-            look_from(self, (self.size_x - 1, y), (0, y), &mut visible_trees);
+        for y in 0..self.size_y() {
+            look_from(self, (0, y), (self.size_x() - 1, y), &mut visible_trees);
+            look_from(self, (self.size_x() - 1, y), (0, y), &mut visible_trees);
         }
 
         visible_trees
@@ -123,8 +96,8 @@ impl Day8Input {
 
     pub fn find_best_scenic_score(&self) -> Result<(usize, (isize, isize))> {
         let mut best = None;
-        for y in 0..self.size_y {
-            for x in 0..self.size_x {
+        for y in 0..self.size_y() {
+            for x in 0..self.size_x() {
                 let score = self.scenic_score_at(x, y);
                 match best {
                     None => best = Some((score, (x, y))),
@@ -139,7 +112,9 @@ impl Day8Input {
 
 impl SolutionInput for Day8Input {
     fn parse(input_str: &str) -> Result<Self> {
-        Day8Input::parse(input_str)
+        Day8Input::parse(input_str, |_x, _y, c| -> Result<_> {
+            Ok((c - b'0') as isize)
+        })
     }
 }
 

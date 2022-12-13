@@ -2,23 +2,18 @@ use std::collections::{HashSet, VecDeque};
 
 use anyhow::{anyhow, bail, ensure, Result};
 
-use crate::solution::{Solution, SolutionInput};
+use crate::{
+    solution::{Solution, SolutionInput},
+    util::Vec2d,
+};
 
 type Point = (isize, isize);
 
-#[derive(Debug)]
-pub struct Map {
-    map: Vec<i8>,
-    size: Point,
-}
+type Map = Vec2d<i8>;
 
 impl Map {
-    fn at(&self, (x, y): Point) -> Option<i8> {
-        if x >= 0 && x < self.size.0 && y >= 0 && y < self.size.1 {
-            Some(self.map[(x + y * self.size.0) as usize])
-        } else {
-            None
-        }
+    fn at(&self, pt: Point) -> Option<i8> {
+        self.get(pt.0, pt.1).cloned()
     }
 
     fn find_path<EndPred, PathPred>(
@@ -68,53 +63,27 @@ pub struct Input {
 
 impl SolutionInput for Input {
     fn parse(input_str: &str) -> Result<Self> {
-        let mut size_x = None;
-        let mut size_y = 0;
         let mut start = None;
         let mut end = None;
-        let mut map = Vec::new();
-        for (y, line) in input_str.split('\n').enumerate() {
-            let mut line_len = 0;
-
-            for (x, c) in line.bytes().enumerate() {
-                map.push(match c {
-                    c @ b'a'..=b'z' => (c - b'a') as i8,
-                    b'S' => {
-                        ensure!(start.is_none());
-                        start = Some((x as isize, y as isize));
-                        0
-                    }
-                    b'E' => {
-                        ensure!(end.is_none());
-                        end = Some((x as isize, y as isize));
-                        (b'z' - b'a') as i8
-                    }
-                    _ => bail!("unexpected char {:?}", c as char),
-                });
-
-                line_len += 1;
+        let map = Map::parse(input_str, |x, y, c| match c {
+            c @ b'a'..=b'z' => Ok((c - b'a') as i8),
+            b'S' => {
+                ensure!(start.is_none());
+                start = Some((x as isize, y as isize));
+                Ok(0)
             }
-
-            match size_x {
-                None => size_x = Some(line_len),
-                Some(size_x) => ensure!(size_x == line_len),
+            b'E' => {
+                ensure!(end.is_none());
+                end = Some((x as isize, y as isize));
+                Ok((b'z' - b'a') as i8)
             }
+            _ => bail!("unexpected char {:?}", c as char),
+        })?;
 
-            size_y += 1;
-        }
-
-        let size_x = size_x.ok_or_else(|| anyhow!("No input"))?;
         let start = start.ok_or_else(|| anyhow!("No start"))?;
         let end = end.ok_or_else(|| anyhow!("No end"))?;
 
-        Ok(Input {
-            map: Map {
-                map,
-                size: (size_x, size_y),
-            },
-            start,
-            end,
-        })
+        Ok(Input { map, start, end })
     }
 }
 
