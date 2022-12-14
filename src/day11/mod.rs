@@ -114,7 +114,7 @@ impl MonkeySet {
             let rule = &monkey.rule;
             let op = &rule.op;
 
-            apply_op_to_item(&mut item, op);
+            apply_op_to_item(&mut item, op)?;
             after_op(&mut item);
             item %= self.divisor;
 
