@@ -1,5 +1,6 @@
 use anyhow::{anyhow, ensure, Context, Result};
-use std::{fs, str::FromStr};
+use num_traits::{FromPrimitive, Num, ToPrimitive};
+use std::{fmt::Debug, fs, str::FromStr};
 
 use crate::solution::{Solution, SolutionInput};
 
@@ -20,17 +21,41 @@ where
 }
 
 #[derive(Debug)]
-pub struct Vec2d<T> {
-    vec: Vec<T>,
-    pub size_x: usize,
-    pub size_y: usize,
+pub struct Vec2d<ItemT, CoordT> {
+    vec: Vec<ItemT>,
+    pub min: (CoordT, CoordT),
+    pub max: (CoordT, CoordT),
+    pub size_x: CoordT,
+    pub size_y: CoordT,
 }
 
-impl<T> Vec2d<T> {
-    pub fn parse<ElemPredE, ElemPred>(input_str: &str, mut elem_pred: ElemPred) -> Result<Vec2d<T>>
+impl<ItemT: Copy, CoordT: Debug + Copy + Num + PartialOrd + ToPrimitive + FromPrimitive>
+    Vec2d<ItemT, CoordT>
+{
+    pub fn new(min: (CoordT, CoordT), max: (CoordT, CoordT), init_val: ItemT) -> Result<Self> {
+        let size_x = CoordT::one() + max.0 - min.0;
+        let size_y = CoordT::one() + max.1 - min.1;
+        let vec_size = (size_x * size_y)
+            .to_usize()
+            .ok_or_else(|| anyhow!("failed convert vec_size to usize"))?;
+        let vec = vec![init_val; vec_size];
+        Ok(Vec2d {
+            vec,
+            min,
+            max,
+            size_x,
+            size_y,
+        })
+    }
+
+    pub fn parse<ElemPredE, ElemPred>(
+        input_str: &str,
+        min: (CoordT, CoordT),
+        mut elem_pred: ElemPred,
+    ) -> Result<Vec2d<ItemT, CoordT>>
     where
-        Result<T, ElemPredE>: Context<T, ElemPredE>,
-        ElemPred: FnMut(usize, usize, u8) -> Result<T, ElemPredE>,
+        Result<ItemT, ElemPredE>: Context<ItemT, ElemPredE>,
+        ElemPred: FnMut(usize, usize, u8) -> Result<ItemT, ElemPredE>,
     {
         let mut size_x = None;
         let mut size_y = 0;
@@ -56,27 +81,45 @@ impl<T> Vec2d<T> {
 
         let size_x = size_x.ok_or_else(|| anyhow!("No input"))?;
 
+        let max = (
+            min.0 + CoordT::from_usize(size_x).unwrap() - CoordT::one(),
+            min.1 + CoordT::from_usize(size_y).unwrap() - CoordT::one(),
+        );
+
         Ok(Vec2d {
             vec,
-            size_x,
-            size_y,
+            min,
+            max,
+            size_x: CoordT::from_usize(size_x).unwrap(),
+            size_y: CoordT::from_usize(size_y).unwrap(),
         })
     }
 
-    pub fn get<X: TryInto<usize> + PartialOrd + Default>(&self, x: X, y: X) -> Option<&T> {
-        if x >= X::default() && y >= X::default() {
-            let x: usize = match x.try_into() {
-                Ok(x) => x,
-                Err(_) => return None,
-            };
-            let y: usize = match y.try_into() {
-                Ok(y) => y,
-                Err(_) => return None,
-            };
-            if x < self.size_x && y < self.size_y {
-                return Some(&self.vec[x + y * self.size_x]);
-            }
+    pub fn get(&self, pt: &(CoordT, CoordT)) -> Option<&ItemT> {
+        if self.is_inside(pt) {
+            Some(&self.vec[self.offset(pt)])
+        } else {
+            None
         }
-        None
+    }
+
+    pub fn get_mut(&mut self, pt: &(CoordT, CoordT)) -> Option<&mut ItemT> {
+        if self.is_inside(pt) {
+            let offset = self.offset(pt);
+            Some(&mut self.vec[offset])
+        } else {
+            None
+        }
+    }
+
+    pub fn is_inside(&self, pt: &(CoordT, CoordT)) -> bool {
+        pt.0 >= self.min.0 && pt.0 <= self.max.0 && pt.1 >= self.min.1 && pt.1 <= self.max.1
+    }
+
+    fn offset(&self, pt: &(CoordT, CoordT)) -> usize {
+        // not that I like these unwraps...
+        ((pt.0 - self.min.0) + (pt.1 - self.min.1) * self.size_x)
+            .to_usize()
+            .unwrap()
     }
 }

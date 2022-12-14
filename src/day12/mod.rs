@@ -9,11 +9,11 @@ use crate::{
 
 type Point = (isize, isize);
 
-type Map = Vec2d<i8>;
+type Map = Vec2d<i8, isize>;
 
 impl Map {
-    fn at(&self, pt: Point) -> Option<i8> {
-        self.get(pt.0, pt.1).cloned()
+    fn at(&self, pt: &Point) -> Option<i8> {
+        self.get(pt).cloned()
     }
 
     fn find_path<EndPred, PathPred>(
@@ -29,7 +29,7 @@ impl Map {
         let mut queue = VecDeque::new();
         let mut visited = HashSet::new();
 
-        let start_height = self.at(start).ok_or_else(|| anyhow!("start out of map"))?;
+        let start_height = self.at(&start).ok_or_else(|| anyhow!("start out of map"))?;
         queue.push_back((start, start_height, 0));
         visited.insert(start);
 
@@ -41,7 +41,7 @@ impl Map {
             for (dx, dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
                 let next_pt = (pt.0 + dx, pt.1 + dy);
 
-                if let Some(next_pt_height) = self.at(next_pt) {
+                if let Some(next_pt_height) = self.at(&next_pt) {
                     if path_pred(height, next_pt_height) && !visited.contains(&next_pt) {
                         queue.push_back((next_pt, next_pt_height, path_len + 1));
                         visited.insert(next_pt);
@@ -65,7 +65,7 @@ impl SolutionInput for Input {
     fn parse(input_str: &str) -> Result<Self> {
         let mut start = None;
         let mut end = None;
-        let map = Map::parse(input_str, |x, y, c| match c {
+        let map = Map::parse(input_str, (0, 0), |x, y, c| match c {
             c @ b'a'..=b'z' => Ok((c - b'a') as i8),
             b'S' => {
                 ensure!(start.is_none());
@@ -117,7 +117,7 @@ impl Solution for Day12Pt2 {
     fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
         input.map.find_path(
             input.end,
-            |pt| input.map.at(pt) == Some(0),
+            |pt| input.map.at(&pt) == Some(0),
             |height, next_height| height <= next_height + 1,
         )
     }

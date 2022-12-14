@@ -4,19 +4,11 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 
-type Day8Input = Vec2d<isize>;
+type Day8Input = Vec2d<isize, isize>;
 
 impl Day8Input {
     pub fn at(&self, x: isize, y: isize) -> isize {
-        self.get(x, y).cloned().unwrap_or(-1)
-    }
-
-    pub fn size_x(&self) -> isize {
-        self.size_x as isize
-    }
-
-    pub fn size_y(&self) -> isize {
-        self.size_y as isize
+        self.get(&(x, y)).cloned().unwrap_or(-1)
     }
 
     pub fn count_visible_trees(&self) -> usize {
@@ -48,14 +40,14 @@ impl Day8Input {
         let mut visible_trees: Vec<Vec<u8>> =
             vec![vec![0; self.size_x as usize]; self.size_y as usize];
 
-        for x in 0..self.size_x() {
-            look_from(self, (x, 0), (x, self.size_y() - 1), &mut visible_trees);
-            look_from(self, (x, self.size_y() - 1), (x, 0), &mut visible_trees);
+        for x in 0..self.size_x {
+            look_from(self, (x, 0), (x, self.size_y - 1), &mut visible_trees);
+            look_from(self, (x, self.size_y - 1), (x, 0), &mut visible_trees);
         }
 
-        for y in 0..self.size_y() {
-            look_from(self, (0, y), (self.size_x() - 1, y), &mut visible_trees);
-            look_from(self, (self.size_x() - 1, y), (0, y), &mut visible_trees);
+        for y in 0..self.size_y {
+            look_from(self, (0, y), (self.size_x - 1, y), &mut visible_trees);
+            look_from(self, (self.size_x - 1, y), (0, y), &mut visible_trees);
         }
 
         visible_trees
@@ -96,8 +88,8 @@ impl Day8Input {
 
     pub fn find_best_scenic_score(&self) -> Result<(usize, (isize, isize))> {
         let mut best = None;
-        for y in 0..self.size_y() {
-            for x in 0..self.size_x() {
+        for y in 0..self.size_y {
+            for x in 0..self.size_x {
                 let score = self.scenic_score_at(x, y);
                 match best {
                     None => best = Some((score, (x, y))),
@@ -112,7 +104,7 @@ impl Day8Input {
 
 impl SolutionInput for Day8Input {
     fn parse(input_str: &str) -> Result<Self> {
-        Day8Input::parse(input_str, |_x, _y, c| -> Result<_> {
+        Day8Input::parse(input_str, (0, 0), |_x, _y, c| -> Result<_> {
             Ok((c - b'0') as isize)
         })
     }
