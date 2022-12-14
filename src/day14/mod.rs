@@ -32,8 +32,17 @@ fn add_sand(map: &mut Map, init_pos: Point) -> bool {
         None
     }
 
+    if map.at(&init_pos) != MapPoint::Empty {
+        return false;
+    }
+
     let mut pos = init_pos;
-    while pos.1 <= map.max_y {
+    let max_y = [Some(map.max_y), map.floor_y]
+        .into_iter()
+        .flatten()
+        .max()
+        .unwrap();
+    while pos.1 <= max_y {
         match next_pos(map, &pos) {
             Some(next_pos) => pos = next_pos,
             None => {
@@ -63,6 +72,25 @@ impl Solution for Day14Pt1 {
     }
 }
 
+pub struct Day14Pt2;
+impl Solution for Day14Pt2 {
+    const DAY: usize = 14;
+    const PART: usize = 2;
+
+    type TInput = Map;
+    type TOutput = usize;
+
+    fn solve(input: &Map) -> Result<Self::TOutput> {
+        let mut map: Map = input.clone();
+        map.floor_y = Some(map.max_y + 2);
+        let mut count = 0;
+        while add_sand(&mut map, (500, 0)) {
+            count += 1;
+        }
+        Ok(count)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -74,6 +102,18 @@ mod tests {
     lazy_static! {
         static ref INPUT_TEST: Map = get_input::<Day14Pt1>("test.txt").unwrap();
         static ref INPUT_MAIN: Map = get_input::<Day14Pt1>("input.txt").unwrap();
+    }
+
+    #[test]
+    fn test_part2_result() -> Result<()> {
+        assert_eq!(23416, Day14Pt2::solve(&INPUT_MAIN)?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_part2() -> Result<()> {
+        assert_eq!(93, Day14Pt2::solve(&INPUT_TEST)?);
+        Ok(())
     }
 
     #[test]

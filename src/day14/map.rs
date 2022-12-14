@@ -22,6 +22,7 @@ impl Default for MapPoint {
 pub struct Map {
     map: HashMap<Point, MapPoint>,
     pub max_y: Coord,
+    pub floor_y: Option<Coord>,
 }
 
 impl Map {
@@ -50,10 +51,17 @@ impl Map {
             }
         }
 
-        Ok(Map { map, max_y })
+        Ok(Map {
+            map,
+            max_y,
+            floor_y: None,
+        })
     }
 
     pub fn at(&self, pt: &Point) -> MapPoint {
+        if Some(pt.1) == self.floor_y {
+            return MapPoint::Wall;
+        }
         self.map.get(pt).cloned().unwrap_or_default()
     }
 

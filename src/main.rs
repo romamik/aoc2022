@@ -22,7 +22,7 @@ use day10::{Day10Pt1, Day10Pt2};
 use day11::{Day11Pt1, Day11Pt2};
 use day12::{Day12Pt1, Day12Pt2};
 use day13::{Day13Pt1, Day13Pt2};
-use day14::Day14Pt1;
+use day14::{Day14Pt1, Day14Pt2};
 use day2::{Day2Pt1, Day2Pt2};
 use day3::{Day3Pt1, Day3Pt2};
 use day4::{Day4Pt1, Day4Pt2};
@@ -60,5 +60,6 @@ fn main() -> Result<()> {
     Day13Pt1::run()?;
     Day13Pt2::run()?;
     Day14Pt1::run()?;
+    Day14Pt2::run()?;
     Ok(())
 }
