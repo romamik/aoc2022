@@ -1,7 +1,10 @@
 use crate::solution::{Solution, SolutionInput};
 use anyhow::{anyhow, ensure, Result};
 use itertools::Itertools;
-use std::{collections::HashMap, fmt::Debug};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Debug,
+};
 
 mod input_parser;
 
@@ -179,31 +182,34 @@ impl Solution for Day11Pt1 {
     }
 }
 
-type Part2Item = HashMap<Num, Num>; // Divisor => Value
-
-fn get_value_for_divisor(item: &Part2Item, divisor: Num) -> Result<Num> {
-    item.get(&divisor)
-        .cloned()
-        .ok_or_else(|| anyhow!("no value for divisor {}", divisor))
-}
+#[derive(Debug)]
+struct Part2Item(Num, Num); // (Value, Divisor)
 
 impl Item for Part2Item {
     fn create(value: Num, divisors: &[Num]) -> Self {
-        divisors
+        let distinct_divisors = divisors
             .iter()
-            .map(|&divisor| (divisor, value % divisor))
-            .collect()
+            .cloned()
+            .collect::<HashSet<_>>()
+            .iter()
+            .cloned()
+            .collect_vec();
+
+        // it's better to find least common multiple, but just a multiple is good enough
+        // also, it would be more practical to calculate this divisor once for all items,
+        // but that will require some refactoring
+        let divisor = distinct_divisors.iter().product();
+
+        Part2Item(value, divisor)
     }
 
     fn divisible_by(&self, divisor: Num) -> Result<bool> {
-        Ok(get_value_for_divisor(self, divisor)? % divisor == 0)
+        Ok(self.0 % divisor == 0)
     }
 
     fn apply_op(&mut self, op: &Op) -> Result<()> {
-        for (divisor, value) in self.iter_mut() {
-            Num::apply_op(value, op)?;
-            *value %= divisor;
-        }
+        Num::apply_op(&mut self.0, op)?;
+        self.0 %= self.1;
         Ok(())
     }
 
