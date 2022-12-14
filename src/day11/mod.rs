@@ -50,46 +50,61 @@ pub struct MonkeyInput {
     rule: MonkeyRule,
 }
 
-trait Item: Debug + Sized {
-    fn create(value: Num, divisors: &[Num]) -> Self;
-    fn divisible_by(&self, n: Num) -> Result<bool>;
-    fn apply_op(&mut self, op: &Op) -> Result<()>;
-    fn after_op(&mut self);
+fn apply_op_to_item(item: &mut Num, (lhs, op, rhs): &Op) -> Result<()> {
+    let lhs = lhs.resolve(*item);
+    let rhs = rhs.resolve(*item);
+    *item = match op {
+        OpType::Add => lhs + rhs,
+        OpType::Mul => lhs * rhs,
+    };
+    Ok(())
 }
 
 #[derive(Debug)]
-struct Monkey<TItem> {
+struct Monkey {
     _name: MonkeyName,
-    items: Vec<TItem>,
+    items: Vec<Num>,
     rule: MonkeyRule,
 }
 
-impl<TItem: Item> Monkey<TItem> {
-    fn create(input: &[MonkeyInput]) -> Vec<Self> {
-        let divisors = input
+#[derive(Debug)]
+struct MonkeySet {
+    monkeys: Vec<Monkey>,
+    divisor: Num,
+}
+
+impl MonkeySet {
+    fn create(input: &[MonkeyInput]) -> MonkeySet {
+        let distinct_divisors = input
             .iter()
             .map(|monkey| monkey.rule.divisible_by)
+            .collect::<HashSet<_>>()
+            .iter()
+            .cloned()
             .collect_vec();
 
-        input
+        let divisor = distinct_divisors.iter().product();
+
+        let monkeys = input
             .iter()
             .map(|monkey| Monkey {
                 _name: monkey.name,
-                items: monkey
-                    .starting_items
-                    .iter()
-                    .map(|&v| TItem::create(v, &divisors))
-                    .collect_vec(),
+                items: monkey.starting_items.clone(),
                 rule: monkey.rule.clone(),
             })
-            .collect_vec()
+            .collect_vec();
+
+        MonkeySet { monkeys, divisor }
     }
 
-    fn make_turn(
-        monkeys: &mut [Self],
+    fn make_turn<F: FnMut(&mut Num)>(
+        &mut self,
         name: usize,
         inspection_count: &mut HashMap<MonkeyName, usize>,
+        after_op: &mut F,
     ) -> Result<()> {
+        let monkeys = &mut self.monkeys;
+
         let items = std::mem::take(&mut monkeys[name].items);
 
         *inspection_count.entry(name).or_default() += items.len();
@@ -99,10 +114,11 @@ impl<TItem: Item> Monkey<TItem> {
             let rule = &monkey.rule;
             let op = &rule.op;
 
-            item.apply_op(op)?;
-            item.after_op();
+            apply_op_to_item(&mut item, op);
+            after_op(&mut item);
+            item %= self.divisor;
 
-            let test_result = item.divisible_by(rule.divisible_by)?;
+            let test_result = item % rule.divisible_by == 0;
 
             let dst_monkey = if test_result {
                 rule.monkey_if_true
@@ -116,12 +132,13 @@ impl<TItem: Item> Monkey<TItem> {
         Ok(())
     }
 
-    fn make_round(
-        monkeys: &mut Vec<Self>,
+    fn make_round<F: FnMut(&mut Num)>(
+        &mut self,
         inspection_count: &mut HashMap<MonkeyName, usize>,
+        after_op: &mut F,
     ) -> Result<()> {
-        for i in 0..monkeys.len() {
-            Self::make_turn(monkeys, i, inspection_count)?;
+        for i in 0..self.monkeys.len() {
+            self.make_turn(i, inspection_count, after_op)?;
         }
         Ok(())
     }
@@ -132,32 +149,6 @@ impl SolutionInput for Vec<MonkeyInput> {
         let (rem, list) = MonkeyInput::parse_list(input_str).map_err(|e| anyhow!("{:?}", e))?;
         ensure!(rem.len() == 0);
         Ok(list)
-    }
-}
-
-type Part1Item = Num;
-
-impl Item for Part1Item {
-    fn create(value: Num, _divisors: &[Num]) -> Self {
-        value
-    }
-
-    fn divisible_by(&self, n: Num) -> Result<bool> {
-        Ok(self % n == 0)
-    }
-
-    fn apply_op(&mut self, (lhs, op, rhs): &Op) -> Result<()> {
-        let lhs = lhs.resolve(*self);
-        let rhs = rhs.resolve(*self);
-        *self = match op {
-            OpType::Add => lhs + rhs,
-            OpType::Mul => lhs * rhs,
-        };
-        Ok(())
-    }
-
-    fn after_op(&mut self) {
-        *self /= 3
     }
 }
 
@@ -172,48 +163,14 @@ impl Solution for Day11Pt1 {
 
     fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
         let mut inspection_count: HashMap<MonkeyName, usize> = HashMap::new();
-        let mut monkeys: Vec<Monkey<Part1Item>> = Monkey::create(input);
+        let mut monkeys: MonkeySet = MonkeySet::create(input);
         for _ in 0..20 {
-            Monkey::make_round(&mut monkeys, &mut inspection_count)?
+            monkeys.make_round(&mut inspection_count, &mut |item: &mut Num| *item /= 3)?
         }
         let mut counts = inspection_count.iter().collect::<Vec<_>>();
         counts.sort_by(|(_name_a, count_a), (_name_b, count_b)| usize::cmp(count_b, count_a));
         Ok(counts[0].1 * counts[1].1)
     }
-}
-
-#[derive(Debug)]
-struct Part2Item(Num, Num); // (Value, Divisor)
-
-impl Item for Part2Item {
-    fn create(value: Num, divisors: &[Num]) -> Self {
-        let distinct_divisors = divisors
-            .iter()
-            .cloned()
-            .collect::<HashSet<_>>()
-            .iter()
-            .cloned()
-            .collect_vec();
-
-        // it's better to find least common multiple, but just a multiple is good enough
-        // also, it would be more practical to calculate this divisor once for all items,
-        // but that will require some refactoring
-        let divisor = distinct_divisors.iter().product();
-
-        Part2Item(value, divisor)
-    }
-
-    fn divisible_by(&self, divisor: Num) -> Result<bool> {
-        Ok(self.0 % divisor == 0)
-    }
-
-    fn apply_op(&mut self, op: &Op) -> Result<()> {
-        Num::apply_op(&mut self.0, op)?;
-        self.0 %= self.1;
-        Ok(())
-    }
-
-    fn after_op(&mut self) {}
 }
 
 pub struct Day11Pt2;
@@ -227,9 +184,9 @@ impl Solution for Day11Pt2 {
 
     fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
         let mut inspection_count: HashMap<MonkeyName, usize> = HashMap::new();
-        let mut monkeys: Vec<Monkey<Part2Item>> = Monkey::create(input);
+        let mut monkeys: MonkeySet = MonkeySet::create(input);
         for _ in 0..10000 {
-            Monkey::make_round(&mut monkeys, &mut inspection_count)?
+            monkeys.make_round(&mut inspection_count, &mut |_item| ())?
         }
         let mut counts = inspection_count.iter().collect::<Vec<_>>();
         counts.sort_by(|(_name_a, count_a), (_name_b, count_b)| usize::cmp(count_b, count_a));
@@ -275,12 +232,12 @@ mod tests {
 
     #[test]
     fn test_make_round() -> Result<()> {
-        let mut monkeys: Vec<Monkey<Part1Item>> = Monkey::create(&INPUT_TEST);
-        Monkey::make_round(&mut monkeys, &mut HashMap::new())?;
-        assert_eq!(monkeys[0].items, vec![20, 23, 27, 26]);
-        assert_eq!(monkeys[1].items, vec![2080, 25, 167, 207, 401, 1046]);
-        assert_eq!(monkeys[2].items, vec![]);
-        assert_eq!(monkeys[3].items, vec![]);
+        let mut m: MonkeySet = MonkeySet::create(&INPUT_TEST);
+        m.make_round(&mut HashMap::new(), &mut |item: &mut Num| *item /= 3)?;
+        assert_eq!(m.monkeys[0].items, vec![20, 23, 27, 26]);
+        assert_eq!(m.monkeys[1].items, vec![2080, 25, 167, 207, 401, 1046]);
+        assert_eq!(m.monkeys[2].items, vec![]);
+        assert_eq!(m.monkeys[3].items, vec![]);
         Ok(())
     }
 }
