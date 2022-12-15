@@ -45,10 +45,7 @@ mod nom_parser {
                 preceded(tag("Sensor at "), parse_point),
                 preceded(tag(": closest beacon is at "), parse_point),
             ),
-            |(sensor_pt, beacon_pt)| Sensor {
-                pos: sensor_pt,
-                beacon: beacon_pt,
-            },
+            |(sensor_pt, beacon_pt)| Sensor::new(sensor_pt, beacon_pt),
         )(s)
     }
 }
@@ -61,10 +58,7 @@ mod tests {
     #[test]
     fn test_parse_sensor() -> Result<()> {
         assert_eq!(
-            Sensor {
-                pos: (2, 18),
-                beacon: (-2, 15)
-            },
+            Sensor::new((2, 18), (-2, 15)),
             parse_sensor("Sensor at x=2, y=18: closest beacon is at x=-2, y=15")?
         );
         Ok(())

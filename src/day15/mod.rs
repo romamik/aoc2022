@@ -2,6 +2,7 @@ mod parser;
 
 use self::parser::parse_sensors;
 use crate::solution::{Solution, SolutionInput};
+
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use std::{cmp::Ordering, collections::HashSet};
@@ -13,6 +14,7 @@ type Point = (Coord, Coord);
 pub struct Sensor {
     pos: Point,
     beacon: Point,
+    distance: Coord,
 }
 
 fn manhattan_distance(a: Point, b: Point) -> Coord {
@@ -20,6 +22,14 @@ fn manhattan_distance(a: Point, b: Point) -> Coord {
 }
 
 impl Sensor {
+    pub fn new(pos: Point, beacon: Point) -> Sensor {
+        let distance = manhattan_distance(pos, beacon);
+        Sensor {
+            pos,
+            beacon,
+            distance,
+        }
+    }
     pub fn get_restricted_x(&self, at_y: Coord) -> Option<(Coord, Coord)> {
         let (x, y) = self.pos;
         let beacon_dist = manhattan_distance(self.pos, self.beacon);
@@ -131,38 +141,34 @@ impl LineRestrictions {
 
         result
     }
+}
 
-    fn find_free(&self, min_x: Coord, max_x: Coord) -> Option<Coord> {
-        // also there is the case when restrictions end before max_x by I decided not to take it into account
-        let mut start_count = 0;
-
-        for pt in self.vec.iter() {
-            match pt.typ {
-                PtType::Start => {
-                    if start_count == 0 {
-                        // we know that previous point (pt.x - 1) is not restricted
-                        let empty_x = pt.x - 1;
-                        if (min_x..=max_x).contains(&empty_x) {
-                            return Some(empty_x);
-                        }
-                    }
-                    start_count += 1;
-                }
-                PtType::End => {
-                    start_count -= 1;
-                }
-                _ => (),
-            }
+fn is_point_outside((x, y): Point, sensors: &[Sensor]) -> bool {
+    for sensor in sensors.iter() {
+        let dist = manhattan_distance((x, y), sensor.pos);
+        if dist < sensor.distance + 1 {
+            return false;
         }
-        None
     }
+    true
 }
 
 fn find_free(sensors: &[Sensor], min: Point, max: Point) -> Option<Point> {
-    for y in min.1..=max.1 {
-        let restrictions = LineRestrictions::new(sensors, y);
-        if let Some(x) = restrictions.find_free(min.0, max.0) {
-            return Some((x, y));
+    for sensor in sensors.iter() {
+        for a in 0..=sensor.distance + 1 {
+            let b = sensor.distance + 1 - a;
+            for (dx, dy) in [(a, b), (a, -b), (-a, b), (-a, -b)] {
+                let x = sensor.pos.0 + dx;
+                let y = sensor.pos.1 + dy;
+                if x >= min.0
+                    && x <= max.0
+                    && y >= min.1
+                    && y <= max.1
+                    && is_point_outside((x, y), sensors)
+                {
+                    return Some((x, y));
+                }
+            }
         }
     }
     None
@@ -210,7 +216,6 @@ mod tests {
     use crate::util::get_input;
     use all_asserts::assert_lt;
     use lazy_static::lazy_static;
-    use ntest::timeout;
 
     lazy_static! {
         static ref INPUT_TEST: Vec<Sensor> = get_input::<Day15Pt1>("test.txt").unwrap();
@@ -218,7 +223,6 @@ mod tests {
     }
 
     #[test]
-    #[timeout(1000)]
     fn test_part2_result() -> Result<()> {
         assert_eq!(10229191267339, Day15Pt2::solve(&INPUT_MAIN)?);
         Ok(())
@@ -246,15 +250,12 @@ mod tests {
         */
         let r_9 = LineRestrictions::new(&INPUT_TEST, 9);
         assert_eq!(r_9.count_restricted(), 25);
-        assert_eq!(r_9.find_free(0, 20), None);
 
         let r_10 = LineRestrictions::new(&INPUT_TEST, 10);
         assert_eq!(r_10.count_restricted(), 26);
-        assert_eq!(r_10.find_free(0, 20), None);
 
         let r_11 = LineRestrictions::new(&INPUT_TEST, 11);
         assert_eq!(r_11.count_restricted(), 27);
-        assert_eq!(r_11.find_free(0, 20), Some(14));
     }
 
     #[test]
@@ -293,10 +294,7 @@ mod tests {
         17 ................S..........B
         */
 
-        let sensor = Sensor {
-            pos: (8, 7),
-            beacon: (2, 10),
-        };
+        let sensor = Sensor::new((8, 7), (2, 10));
         assert_eq!(sensor.get_restricted_x(7), Some((-1, 17)));
         assert_eq!(sensor.get_restricted_x(10), Some((2, 14)));
         assert_eq!(sensor.get_restricted_x(16), Some((8, 8)));
