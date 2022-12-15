@@ -94,7 +94,7 @@ impl Solution for Day14Pt2 {
 mod tests {
 
     use super::*;
-    use crate::{day14::map::MapPoint, util::get_input};
+    use crate::util::get_input;
 
     use lazy_static::lazy_static;
 
