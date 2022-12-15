@@ -70,21 +70,10 @@ struct Monkey {
 #[derive(Debug)]
 struct MonkeySet {
     monkeys: Vec<Monkey>,
-    divisor: Num,
 }
 
 impl MonkeySet {
     fn create(input: &[MonkeyInput]) -> MonkeySet {
-        let distinct_divisors = input
-            .iter()
-            .map(|monkey| monkey.rule.divisible_by)
-            .collect::<HashSet<_>>()
-            .iter()
-            .cloned()
-            .collect_vec();
-
-        let divisor = distinct_divisors.iter().product();
-
         let monkeys = input
             .iter()
             .map(|monkey| Monkey {
@@ -94,7 +83,7 @@ impl MonkeySet {
             })
             .collect_vec();
 
-        MonkeySet { monkeys, divisor }
+        MonkeySet { monkeys }
     }
 
     fn make_turn<F: FnMut(&mut Num)>(
@@ -116,7 +105,6 @@ impl MonkeySet {
 
             apply_op_to_item(&mut item, op)?;
             after_op(&mut item);
-            item %= self.divisor;
 
             let test_result = item % rule.divisible_by == 0;
 
@@ -173,6 +161,18 @@ impl Solution for Day11Pt1 {
     }
 }
 
+fn find_divisor(input: &[MonkeyInput]) -> Num {
+    let distinct_divisors = input
+        .iter()
+        .map(|monkey| monkey.rule.divisible_by)
+        .collect::<HashSet<_>>()
+        .iter()
+        .cloned()
+        .collect_vec();
+
+    distinct_divisors.iter().product()
+}
+
 pub struct Day11Pt2;
 
 impl Solution for Day11Pt2 {
@@ -185,8 +185,9 @@ impl Solution for Day11Pt2 {
     fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
         let mut inspection_count: HashMap<MonkeyName, usize> = HashMap::new();
         let mut monkeys: MonkeySet = MonkeySet::create(input);
+        let divisor = find_divisor(input);
         for _ in 0..10000 {
-            monkeys.make_round(&mut inspection_count, &mut |_item| ())?
+            monkeys.make_round(&mut inspection_count, &mut |item| *item %= divisor)?
         }
         let mut counts = inspection_count.iter().collect::<Vec<_>>();
         counts.sort_by(|(_name_a, count_a), (_name_b, count_b)| usize::cmp(count_b, count_a));
