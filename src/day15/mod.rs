@@ -1,16 +1,12 @@
-use std::{cmp::Ordering, collections::HashSet};
-
-use anyhow::Result;
-
-use itertools::Itertools;
-
-use crate::solution::{Solution, SolutionInput};
-
-use self::parser::parse_sensors;
-
 mod parser;
 
-type Coord = i32;
+use self::parser::parse_sensors;
+use crate::solution::{Solution, SolutionInput};
+use anyhow::{anyhow, Result};
+use itertools::Itertools;
+use std::{cmp::Ordering, collections::HashSet};
+
+type Coord = i64;
 type Point = (Coord, Coord);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,7 +104,7 @@ impl LineRestrictions {
     fn count_restricted(&self) -> Coord {
         let mut result = 0;
         let mut start_count = 0;
-        let mut start_x = -1;
+        let mut start_x = 0;
 
         for pt in self.vec.iter() {
             match pt.typ {
@@ -135,6 +131,41 @@ impl LineRestrictions {
 
         result
     }
+
+    fn find_free(&self, min_x: Coord, max_x: Coord) -> Option<Coord> {
+        // also there is the case when restrictions end before max_x by I decided not to take it into account
+        let mut start_count = 0;
+
+        for pt in self.vec.iter() {
+            match pt.typ {
+                PtType::Start => {
+                    if start_count == 0 {
+                        // we know that previous point (pt.x - 1) is not restricted
+                        let empty_x = pt.x - 1;
+                        if (min_x..=max_x).contains(&empty_x) {
+                            return Some(empty_x);
+                        }
+                    }
+                    start_count += 1;
+                }
+                PtType::End => {
+                    start_count -= 1;
+                }
+                _ => (),
+            }
+        }
+        None
+    }
+}
+
+fn find_free(sensors: &[Sensor], min: Point, max: Point) -> Option<Point> {
+    for y in min.1..=max.1 {
+        let restrictions = LineRestrictions::new(sensors, y);
+        if let Some(x) = restrictions.find_free(min.0, max.0) {
+            return Some((x, y));
+        }
+    }
+    None
 }
 
 impl SolutionInput for Vec<Sensor> {
@@ -157,6 +188,21 @@ impl Solution for Day15Pt1 {
     }
 }
 
+pub struct Day15Pt2;
+impl Solution for Day15Pt2 {
+    const DAY: usize = 15;
+    const PART: usize = 2;
+
+    type TInput = Vec<Sensor>;
+    type TOutput = Coord;
+
+    fn solve(input: &Self::TInput) -> Result<Self::TOutput> {
+        let pt = find_free(input, (0, 0), (4000000, 4000000))
+            .ok_or_else(|| anyhow!("free space not found"))?;
+        Ok(pt.0 * 4000000 + pt.1)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -164,28 +210,29 @@ mod tests {
     use crate::util::get_input;
     use all_asserts::assert_lt;
     use lazy_static::lazy_static;
+    use ntest::timeout;
 
     lazy_static! {
         static ref INPUT_TEST: Vec<Sensor> = get_input::<Day15Pt1>("test.txt").unwrap();
         static ref INPUT_MAIN: Vec<Sensor> = get_input::<Day15Pt1>("input.txt").unwrap();
     }
 
-    // #[test]
-    // fn test_part2_result() -> Result<()> {
-    //     assert_eq!(23416, Day14Pt2::solve(&INPUT_MAIN)?);
-    //     Ok(())
-    // }
-
-    // #[test]
-    // fn test_part2() -> Result<()> {
-    //     assert_eq!(93, Day14Pt2::solve(&INPUT_TEST)?);
-    //     Ok(())
-    // }
+    #[test]
+    #[timeout(1000)]
+    fn test_part2_result() -> Result<()> {
+        assert_eq!(10229191267339, Day15Pt2::solve(&INPUT_MAIN)?);
+        Ok(())
+    }
 
     #[test]
     fn test_part1_result() -> Result<()> {
         assert_eq!(5144286, Day15Pt1::solve(&INPUT_MAIN)?);
         Ok(())
+    }
+
+    #[test]
+    fn test_find_free() {
+        assert_eq!(find_free(&INPUT_TEST, (0, 0), (20, 20)), Some((14, 11)));
     }
 
     #[test]
@@ -199,12 +246,15 @@ mod tests {
         */
         let r_9 = LineRestrictions::new(&INPUT_TEST, 9);
         assert_eq!(r_9.count_restricted(), 25);
+        assert_eq!(r_9.find_free(0, 20), None);
 
         let r_10 = LineRestrictions::new(&INPUT_TEST, 10);
         assert_eq!(r_10.count_restricted(), 26);
+        assert_eq!(r_10.find_free(0, 20), None);
 
         let r_11 = LineRestrictions::new(&INPUT_TEST, 11);
         assert_eq!(r_11.count_restricted(), 27);
+        assert_eq!(r_11.find_free(0, 20), Some(14));
     }
 
     #[test]
