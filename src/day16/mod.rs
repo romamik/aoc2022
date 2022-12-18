@@ -1,7 +1,7 @@
 mod parser;
 
 use crate::solution::{Solution, SolutionInput};
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{anyhow, bail, Result};
 
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet, VecDeque};
@@ -132,20 +132,23 @@ impl SolutionInput for Input {
     }
 }
 
-fn for_all_visit_orders<F: FnMut(&[&str]) -> Result<()>>(
+fn for_all_visit_orders<F: FnMut(&[&str], usize) -> Result<()>>(
     start_room: &str,
     rooms: &[&str],
+    input: &Input,
     graph: &Graph,
     max_time: usize,
     mut cb: F,
 ) -> Result<()> {
     // recursively visit all possible orders of visit
-    fn gen<'a, F: FnMut(&[&str]) -> Result<()>>(
+    fn gen<'a, F: FnMut(&[&str], usize) -> Result<()>>(
         prev_room: &'a str,
         vec: &mut Vec<&'a str>,
         rooms: &mut HashSet<&'a str>,
+        input: &Input,
         graph: &Graph,
         time_left: usize,
+        total_flow: usize,
         cb: &mut F,
     ) -> Result<()> {
         let mut traveled = false;
@@ -154,14 +157,15 @@ fn for_all_visit_orders<F: FnMut(&[&str]) -> Result<()>>(
                 if (travel_time + 1) <= time_left {
                     rooms.remove(next_room);
                     vec.push(next_room);
+                    let time_left = time_left - (travel_time + 1);
 
+                    let next_room_flow = input
+                        .get(next_room)
+                        .ok_or_else(|| anyhow!("no room {:?}", next_room))?
+                        .flow;
+                    let total_flow = total_flow + next_room_flow * time_left;
                     gen(
-                        next_room,
-                        vec,
-                        rooms,
-                        graph,
-                        time_left - (travel_time + 1),
-                        cb,
+                        next_room, vec, rooms, input, graph, time_left, total_flow, cb,
                     )?;
 
                     rooms.insert(next_room);
@@ -173,7 +177,7 @@ fn for_all_visit_orders<F: FnMut(&[&str]) -> Result<()>>(
         }
 
         if !traveled {
-            cb(vec)?;
+            cb(vec, total_flow)?;
         }
 
         Ok(())
@@ -187,8 +191,10 @@ fn for_all_visit_orders<F: FnMut(&[&str]) -> Result<()>>(
         start_room,
         &mut Vec::new(),
         &mut rooms,
+        input,
         graph,
         max_time,
+        0,
         &mut cb,
     )?;
 
@@ -211,13 +217,20 @@ impl Solution for Day16Pt1 {
 
         let mut max_flow = 0;
 
-        for_all_visit_orders(start_room, &rooms, &graph, max_time, |order| {
-            let (flow, _time_left) =
-                calc_total_flow_for_visit_order(input, &graph, start_room, order, max_time)
-                    .with_context(|| anyhow!("visit order: {:?}", order))?;
-            max_flow = max_flow.max(flow);
-            Ok(())
-        })?;
+        for_all_visit_orders(
+            start_room,
+            &rooms,
+            input,
+            &graph,
+            max_time,
+            |_order, flow| {
+                //let (flow, _time_left) =
+                // calc_total_flow_for_visit_order(input, &graph, start_room, order, max_time)
+                //     .with_context(|| anyhow!("visit order: {:?}", order))?;
+                max_flow = max_flow.max(flow);
+                Ok(())
+            },
+        )?;
 
         Ok(max_flow)
     }
