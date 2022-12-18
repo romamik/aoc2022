@@ -8,27 +8,17 @@ pub fn parse_room(s: &str) -> Result<(String, Room)> {
     Ok((name, room))
 }
 
-pub fn parse_system(s: &str) -> Result<System> {
-    let rooms = s
-        .split('\n')
+pub fn parse_input(s: &str) -> Result<Input> {
+    s.split('\n')
         .map(|s| parse_room(s).with_context(|| anyhow!("parsing {:?}", s)))
-        .collect::<Result<Vec<_>>>()?;
-    let starting_room = rooms
-        .first()
-        .ok_or_else(|| anyhow!("no rooms!"))?
-        .0
-        .to_owned();
-    let rooms = rooms.into_iter().collect::<HashMap<_, _>>();
-    Ok(System {
-        starting_room,
-        rooms,
-    })
+        .collect::<Result<HashMap<_, _>>>()
 }
 
 mod nom_parser {
 
     use super::*;
     use nom::{
+        branch::alt,
         bytes::complete::tag,
         character::complete::{alpha1, char, digit1, space0},
         combinator::{map, map_res, recognize},
@@ -54,7 +44,13 @@ mod nom_parser {
             tuple((
                 preceded(tag("Valve "), parse_name),
                 preceded(tag(" has flow rate="), parse_num),
-                preceded(tag("; tunnels lead to valves "), parse_name_list),
+                preceded(
+                    alt((
+                        tag("; tunnels lead to valves "),
+                        tag("; tunnel leads to valve "),
+                    )),
+                    parse_name_list,
+                ),
             )),
             |(name, flow, tunnels)| (name, Room { flow, tunnels }),
         )(s)
@@ -67,30 +63,27 @@ mod tests {
     use anyhow::Result;
 
     #[test]
-    fn test_parse_system() -> Result<()> {
+    fn test_parse_input() -> Result<()> {
         assert_eq!(
-            System {
-                starting_room: "AA".to_string(),
-                rooms: [
-                    (
-                        "AA".to_string(),
-                        Room {
-                            flow: 0,
-                            tunnels: vec!["DD".to_string(), "II".to_string(), "BB".to_string()]
-                        }
-                    ),
-                    (
-                        "BB".to_string(),
-                        Room {
-                            flow: 13,
-                            tunnels: vec!["CC".to_string(), "AA".to_string()]
-                        }
-                    )
-                ]
-                .into_iter()
-                .collect()
-            },
-            parse_system("Valve AA has flow rate=0; tunnels lead to valves DD, II, BB\nValve BB has flow rate=13; tunnels lead to valves CC, AA")?
+            [
+                (
+                    "AA".to_string(),
+                    Room {
+                        flow: 0,
+                        tunnels: vec!["DD".to_string()]
+                    }
+                ),
+                (
+                    "BB".to_string(),
+                    Room {
+                        flow: 13,
+                        tunnels: vec!["CC".to_string(), "AA".to_string()]
+                    }
+                )
+            ]
+            .into_iter()
+            .collect::<HashMap<_,_>>(),
+            parse_input("Valve AA has flow rate=0; tunnel leads to valve DD\nValve BB has flow rate=13; tunnels lead to valves CC, AA")?
         );
         Ok(())
     }
